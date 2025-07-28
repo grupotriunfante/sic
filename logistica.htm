@@ -55,6 +55,7 @@
         .status-badge.Pendente { background-color: #ffc107; color: #333; }
         .status-badge.Aprovado { background-color: #28a745; }
         .status-badge.Reprovado { background-color: #dc3545; }
+        .status-badge.FinanceiroManual { background-color: #007bff; }
         
         /* Status Logístico */
         .status-badge.AguardandoAgendamento { background-color: #6c757d; }
@@ -95,6 +96,15 @@
         }
         .actions-logistica button:hover {
             background-color: #0056b3;
+        }
+        /* Estilos para elementos desabilitados */
+        .actions-logistica select:disabled {
+            background-color: #e9e9e9;
+            cursor: not-allowed;
+        }
+        .actions-logistica button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
 
         .no-sics {
@@ -268,7 +278,7 @@
         <h1>Acompanhamento Logístico - Unidade <span id="currentUnitDisplay"></span></h1>
 
         <div id="sicListLogistica">
-            </div>
+        </div>
 
         <div id="message"></div>
     </div>
@@ -453,24 +463,33 @@
             `;
 
             sicsToDisplay.forEach(sic => {
-                const statusLogisticoClass = sic.statusLogistico.replace(/\s/g, '').replace(/[^a-zA-Z0-9]/g, '');
-                const statusFinanceiroClass = sic.statusFinanceiro.replace(/\s/g, '').replace(/[^a-zA-Z0-9]/g, '');
+                const statusLogisticoClass = (sic.statusLogistico || 'N/A').replace(/\s/g, '').replace(/[^a-zA-Z0-9]/g, '');
+                const statusFinanceiroClass = (sic.statusFinanceiro || 'N/A').replace(/\s/g, '').replace(/[^a-zA-Z0-9]/g, '');
                 
                 // Formata a data para o input[type="date"]
                 const scheduledDate = sic.dataEntregaAgendada ? new Date(sic.dataEntregaAgendada).toISOString().split('T')[0] : '';
 
+                // Lógica de desabilitação: só habilita se o status financeiro for 'Aprovado'
+                const isDisabled = (sic.statusFinanceiro !== 'Aprovado');
+                
+                // Mensagem do tooltip
+                let tooltipMessage = '';
+                if (isDisabled) {
+                    tooltipMessage = 'Só é possível atualizar o Status Logístico após o Status Financeiro ser Aprovado.';
+                }
+
                 tableHTML += `
                     <tr>
-                        <td>${sic.numeroDaSic}</td>
-                        <td>${sic.unidade}</td>
+                        <td>${sic.numeroDaSic || 'N/A'}</td>
+                        <td>${sic.unidade || 'N/A'}</td>
                         <td>${sic.fornecedor || 'N/A'}</td>
-                        <td><span class="status-badge ${statusFinanceiroClass}">${sic.statusFinanceiro}</span></td>
-                        <td><span class="status-badge ${statusLogisticoClass}">${sic.statusLogistico}</span></td>
+                        <td><span class="status-badge ${statusFinanceiroClass}">${sic.statusFinanceiro || 'N/A'}</span></td>
+                        <td><span class="status-badge ${statusLogisticoClass}">${sic.statusLogistico || 'N/A'}</span></td>
                         <td>
-                            <input type="date" class="scheduled-delivery-date" data-sic="${sic.numeroDaSic}" value="${scheduledDate}" ${sic.statusLogistico !== 'Entrega Agendada' ? 'style="display:none;"' : ''}>
+                            <input type="date" class="scheduled-delivery-date" data-sic="${sic.numeroDaSic}" value="${scheduledDate}" ${sic.statusLogistico !== 'Entrega Agendada' ? 'style="display:none;"' : ''} ${isDisabled ? 'disabled' : ''} title="${tooltipMessage}">
                         </td>
                         <td class="actions-logistica">
-                            <select class="new-status-logistico" data-sic="${sic.numeroDaSic}">
+                            <select class="new-status-logistico" data-sic="${sic.numeroDaSic}" data-financeiro-status="${sic.statusFinanceiro}" ${isDisabled ? 'disabled' : ''} title="${tooltipMessage}">
                                 <option value="Aguardando Agendamento" ${sic.statusLogistico === 'Aguardando Agendamento' ? 'selected' : ''}>Aguardando Agendamento</option>
                                 <option value="Entrega Agendada" ${sic.statusLogistico === 'Entrega Agendada' ? 'selected' : ''}>Entrega Agendada</option>
                                 <option value="Em Trânsito" ${sic.statusLogistico === 'Em Trânsito' ? 'selected' : ''}>Em Trânsito</option>
@@ -478,7 +497,7 @@
                                 <option value="Problema na Entrega" ${sic.statusLogistico === 'Problema na Entrega' ? 'selected' : ''}>Problema na Entrega</option>
                                 <option value="Devolucao" ${sic.statusLogistico === 'Devolucao' ? 'selected' : ''}>Devolução</option>
                             </select>
-                            <button class="update-logistico-btn" data-sic="${sic.numeroDaSic}">Atualizar</button>
+                            <button class="update-logistico-btn" data-sic="${sic.numeroDaSic}" ${isDisabled ? 'disabled' : ''} title="${tooltipMessage}">Atualizar</button>
                         </td>
                     </tr>
                 `;
@@ -490,30 +509,42 @@
             `;
             sicListDiv.innerHTML = tableHTML;
 
+            // Adiciona listeners para mostrar/esconder o input de data
             document.querySelectorAll('.new-status-logistico').forEach(select => {
                 select.addEventListener('change', function() {
                     const selectedValue = this.value;
-                    // Encontra o input de data associado a esta linha
                     const row = this.closest('tr');
                     const dateInput = row.querySelector('.scheduled-delivery-date');
+                    
+                    // Condição para mostrar/esconder o campo de data, respeitando o financeiro
+                    const isFinanceiroApproved = this.dataset.financeiroStatus === 'Aprovado';
                     if (dateInput) {
-                        if (selectedValue === 'Entrega Agendada') {
+                        if (selectedValue === 'Entrega Agendada' && isFinanceiroApproved) {
                             dateInput.style.display = 'inline-block';
-                            dateInput.setAttribute('required', 'true'); // Torna o campo obrigatório
+                            dateInput.setAttribute('required', 'true');
                         } else {
                             dateInput.style.display = 'none';
                             dateInput.removeAttribute('required');
-                            dateInput.value = ''; // Limpa a data se o status não for "Entrega Agendada"
+                            dateInput.value = '';
                         }
                     }
                 });
             });
 
             document.querySelectorAll('.update-logistico-btn').forEach(button => {
-                button.addEventListener('click', function() {
+                button.addEventListener('click', async function() {
                     const numeroSic = this.dataset.sic;
-                    const selectElement = this.previousElementSibling; // O select está logo antes do botão
+                    const selectElement = this.previousElementSibling;
                     const newStatus = selectElement.value;
+                    
+                    // PEGA O STATUS FINANCEIRO do atributo data-
+                    const financeiroStatus = selectElement.dataset.financeiroStatus; 
+
+                    // VALIDAÇÃO CRÍTICA: Impedir alteração se financeiro não estiver Aprovado
+                    if (financeiroStatus !== 'Aprovado') {
+                        displayMessage('Não é possível mudar o Status Logístico antes que o Status Financeiro seja "Aprovado".', 'error');
+                        return;
+                    }
 
                     const row = this.closest('tr');
                     const dateInput = row.querySelector('.scheduled-delivery-date');
@@ -523,37 +554,27 @@
                         scheduledDate = dateInput.value;
                         if (!scheduledDate) {
                             displayMessage('Por favor, insira a data de entrega agendada.', 'error');
-                            return; // Impede a atualização se a data estiver vazia
+                            return;
                         }
                     }
-                    updateSicStatusLogistico(numeroSic, newStatus, scheduledDate);
+                    await updateSicStatusLogistico(numeroSic, newStatus, scheduledDate);
                 });
             });
         }
 
         async function updateSicStatusLogistico(numeroSic, newStatus, scheduledDate = null) {
-            let confirmationMessage = `Tem certeza que deseja mudar o status logístico da SIC ${numeroSic} para "${newStatus}"?`;
-            if (newStatus === 'Entrega Agendada' && scheduledDate) {
-                confirmationMessage += `\nData de Entrega Agendada: ${scheduledDate}`;
-            }
-
-            const confirmUpdate = confirm(confirmationMessage);
-            if (!confirmUpdate) {
-                return;
-            }
+            displayMessage('Atualizando status...', 'info'); // Mensagem de carregamento
 
             const formData = new FormData();
-            formData.append('action', 'updateStatus'); // Indica ao Apps Script que é uma atualização
+            formData.append('action', 'updateStatus');
             formData.append('numeroSic', numeroSic);
             formData.append('newStatus', newStatus);
-            formData.append('statusField', 'Status Logistico'); // Campo a ser atualizado
-            formData.append('sendEmail', 'true'); // Sinal para o Apps Script enviar e-mail
+            formData.append('statusField', 'Status Logistico');
+            formData.append('sendEmail', 'true');
             
-            // Adiciona a data agendada se o status for "Entrega Agendada"
             if (newStatus === 'Entrega Agendada' && scheduledDate) {
                 formData.append('scheduledDeliveryDate', scheduledDate);
             } else {
-                // Se o status mudar para algo que não seja "Entrega Agendada", limpa a data
                 formData.append('scheduledDeliveryDate', ''); 
             }
 
@@ -571,8 +592,7 @@
 
                 if (result.status === 'success') {
                     displayMessage(`Status logístico da SIC ${numeroSic} atualizado para "${newStatus}"!`, 'success');
-                    // O Apps Script agora lida com o envio de e-mail.
-                    renderSicsForLogistica(selectedUnit); // Recarrega a tabela para refletir a mudança
+                    renderSicsForLogistica(selectedUnit);
                 } else {
                     displayMessage(`Erro ao atualizar SIC: ${result.message}`, 'error');
                 }
