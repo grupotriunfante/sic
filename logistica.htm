@@ -71,6 +71,17 @@
             font-size: 14px;
             margin-right: 5px;
             min-width: 150px;
+            vertical-align: middle; /* Alinha o select com o input de data */
+        }
+        .actions-logistica input[type="date"] {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-right: 5px;
+            min-width: 150px;
+            display: none; /* Inicia oculto */
+            vertical-align: middle; /* Alinha o input com o select */
         }
         .actions-logistica button {
             padding: 6px 10px;
@@ -80,6 +91,7 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
+            vertical-align: middle; /* Alinha o botão com os outros elementos */
         }
         .actions-logistica button:hover {
             background-color: #0056b3;
@@ -382,12 +394,11 @@
             }, 5000);
         }
 
-        async function fetchSics(filterUnit = null) {
+        async function fetchSics(filterUnits = null) { // Mudança aqui: espera um array ou JSON de unidades
             try {
-                let url = WEB_APP_URL;
-                if (filterUnit) {
-                    // Adiciona um parâmetro 'filterUnit' à URL para que o Apps Script possa filtrar
-                    url += `?filterUnit=${encodeURIComponent(filterUnit)}`;
+                let url = new URL(WEB_APP_URL);
+                if (filterUnits) {
+                    url.searchParams.append('filterUnits', filterUnits); // Envia como string JSON
                 }
                 
                 const response = await fetch(url);
@@ -415,12 +426,7 @@
             // Pega o grupo de unidades que pertence à unidade que fez o acesso
             const unitsInGroup = OPERATIONAL_GROUPS[unitMakingTheAccess] || [unitMakingTheAccess];
             
-            // Vai buscar TODAS as SICs (o filtro por grupo será feito no Apps Script se o parâmetro 'unitsToFilter' for passado)
-            // Ou, podemos ajustar o Apps Script para filtrar por UM "filterUnit" e lá ele resolve o grupo.
-            // Para simplificar, vou pedir para o Apps Script aceitar um array de unidades para filtrar.
-            // Isso requer uma pequena mudança na chamada fetchSics.
-            
-            // Enviando o grupo de unidades para o Apps Script
+            // Enviando o grupo de unidades como string JSON para o Apps Script
             const allSics = await fetchSics(JSON.stringify(unitsInGroup));
 
             // Filtragem adicional no cliente (para garantir, mas a principal será no servidor)
@@ -440,7 +446,7 @@
                             <th>Fornecedor</th>
                             <th>Status Financeiro</th>
                             <th>Status Logístico Atual</th>
-                            <th>Atualizar Status Logístico</th>
+                            <th>Data de Entrega Agendada</th> <th>Atualizar Status Logístico</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -449,22 +455,31 @@
             sicsToDisplay.forEach(sic => {
                 const statusLogisticoClass = sic.statusLogistico.replace(/\s/g, '').replace(/[^a-zA-Z0-9]/g, '');
                 const statusFinanceiroClass = sic.statusFinanceiro.replace(/\s/g, '').replace(/[^a-zA-Z0-9]/g, '');
+                
+                // Formata a data para o input[type="date"]
+                const scheduledDate = sic.dataEntregaAgendada ? new Date(sic.dataEntregaAgendada).toISOString().split('T')[0] : '';
 
                 tableHTML += `
                     <tr>
-                        <td>${sic.numeroDaSic}</td> <td>${sic.unidade}</td>
+                        <td>${sic.numeroDaSic}</td>
+                        <td>${sic.unidade}</td>
                         <td>${sic.fornecedor || 'N/A'}</td>
                         <td><span class="status-badge ${statusFinanceiroClass}">${sic.statusFinanceiro}</span></td>
                         <td><span class="status-badge ${statusLogisticoClass}">${sic.statusLogistico}</span></td>
+                        <td>
+                            <input type="date" class="scheduled-delivery-date" data-sic="${sic.numeroDaSic}" value="${scheduledDate}" ${sic.statusLogistico !== 'Entrega Agendada' ? 'style="display:none;"' : ''}>
+                        </td>
                         <td class="actions-logistica">
-                            <select class="new-status-logistico" data-sic="${sic.numeroDaSic}"> <option value="Aguardando Agendamento" ${sic.statusLogistico === 'Aguardando Agendamento' ? 'selected' : ''}>Aguardando Agendamento</option>
+                            <select class="new-status-logistico" data-sic="${sic.numeroDaSic}">
+                                <option value="Aguardando Agendamento" ${sic.statusLogistico === 'Aguardando Agendamento' ? 'selected' : ''}>Aguardando Agendamento</option>
                                 <option value="Entrega Agendada" ${sic.statusLogistico === 'Entrega Agendada' ? 'selected' : ''}>Entrega Agendada</option>
                                 <option value="Em Trânsito" ${sic.statusLogistico === 'Em Trânsito' ? 'selected' : ''}>Em Trânsito</option>
                                 <option value="Entrega Recebida" ${sic.statusLogistico === 'Entrega Recebida' ? 'selected' : ''}>Entrega Recebida</option>
                                 <option value="Problema na Entrega" ${sic.statusLogistico === 'Problema na Entrega' ? 'selected' : ''}>Problema na Entrega</option>
                                 <option value="Devolucao" ${sic.statusLogistico === 'Devolucao' ? 'selected' : ''}>Devolução</option>
                             </select>
-                            <button class="update-logistico-btn" data-sic="${sic.numeroDaSic}">Atualizar</button> </td>
+                            <button class="update-logistico-btn" data-sic="${sic.numeroDaSic}">Atualizar</button>
+                        </td>
                     </tr>
                 `;
             });
@@ -475,18 +490,54 @@
             `;
             sicListDiv.innerHTML = tableHTML;
 
+            document.querySelectorAll('.new-status-logistico').forEach(select => {
+                select.addEventListener('change', function() {
+                    const selectedValue = this.value;
+                    // Encontra o input de data associado a esta linha
+                    const row = this.closest('tr');
+                    const dateInput = row.querySelector('.scheduled-delivery-date');
+                    if (dateInput) {
+                        if (selectedValue === 'Entrega Agendada') {
+                            dateInput.style.display = 'inline-block';
+                            dateInput.setAttribute('required', 'true'); // Torna o campo obrigatório
+                        } else {
+                            dateInput.style.display = 'none';
+                            dateInput.removeAttribute('required');
+                            dateInput.value = ''; // Limpa a data se o status não for "Entrega Agendada"
+                        }
+                    }
+                });
+            });
+
             document.querySelectorAll('.update-logistico-btn').forEach(button => {
                 button.addEventListener('click', function() {
                     const numeroSic = this.dataset.sic;
-                    const selectElement = this.previousElementSibling;
+                    const selectElement = this.previousElementSibling; // O select está logo antes do botão
                     const newStatus = selectElement.value;
-                    updateSicStatusLogistico(numeroSic, newStatus);
+
+                    const row = this.closest('tr');
+                    const dateInput = row.querySelector('.scheduled-delivery-date');
+                    let scheduledDate = null;
+
+                    if (newStatus === 'Entrega Agendada') {
+                        scheduledDate = dateInput.value;
+                        if (!scheduledDate) {
+                            displayMessage('Por favor, insira a data de entrega agendada.', 'error');
+                            return; // Impede a atualização se a data estiver vazia
+                        }
+                    }
+                    updateSicStatusLogistico(numeroSic, newStatus, scheduledDate);
                 });
             });
         }
 
-        async function updateSicStatusLogistico(numeroSic, newStatus) {
-            const confirmUpdate = confirm(`Tem certeza que deseja mudar o status logístico da SIC ${numeroSic} para "${newStatus}"?`);
+        async function updateSicStatusLogistico(numeroSic, newStatus, scheduledDate = null) {
+            let confirmationMessage = `Tem certeza que deseja mudar o status logístico da SIC ${numeroSic} para "${newStatus}"?`;
+            if (newStatus === 'Entrega Agendada' && scheduledDate) {
+                confirmationMessage += `\nData de Entrega Agendada: ${scheduledDate}`;
+            }
+
+            const confirmUpdate = confirm(confirmationMessage);
             if (!confirmUpdate) {
                 return;
             }
@@ -498,8 +549,13 @@
             formData.append('statusField', 'Status Logistico'); // Campo a ser atualizado
             formData.append('sendEmail', 'true'); // Sinal para o Apps Script enviar e-mail
             
-            // Opcional: para o email, você pode passar a unidade que fez a atualização
-            // formData.append('updatedByUnit', selectedUnit); 
+            // Adiciona a data agendada se o status for "Entrega Agendada"
+            if (newStatus === 'Entrega Agendada' && scheduledDate) {
+                formData.append('scheduledDeliveryDate', scheduledDate);
+            } else {
+                // Se o status mudar para algo que não seja "Entrega Agendada", limpa a data
+                formData.append('scheduledDeliveryDate', ''); 
+            }
 
             try {
                 const response = await fetch(WEB_APP_URL, {
@@ -522,7 +578,7 @@
                 }
             } catch (error) {
                 console.error('Erro ao atualizar SIC:', error);
-                displayMessage('Status Atualizado', 'error');
+                displayMessage('Erro de rede ou servidor ao atualizar o status.', 'error');
             }
         }
     </script>
