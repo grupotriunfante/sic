@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de SIC - Sistema de Gerenciamento</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            margin: auto;
+            /* display: none; */ /* Controlado pelo script */
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"], input[type="password"], select {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            display: none; /* Escondido por padrão */
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        /* Estilos para a navegação */
+        nav {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        nav a {
+            margin: 0 10px;
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+
+        /* Container de Seleção de Unidade */
+        .unit-selection-container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            margin: auto;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: calc(100vh - 40px);
+        }
+        .unit-selection-container h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .unit-selection-container select {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .unit-selection-container button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        .unit-selection-container button:hover {
+            background-color: #0056b3;
+        }
+        #unitSelectionError {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* Overlay e Modal de Senha (para a unidade) */
+        .password-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .password-modal {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            width: 300px;
+        }
+        .password-modal h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .password-modal input[type="password"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .password-modal button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        .password-modal button:hover {
+            background-color: #0056b3;
+        }
+        #passwordError {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="unit-selection-container" id="unitSelectionContainer">
+        <h2>Selecione a Unidade - Cadastro de SIC</h2>
+        <select id="selectUnitForAccess">
+            <option value="">Selecione a Unidade</option>
+            <option value="TPH">TPH</option>
+            <option value="API">API</option>
+            <option value="MCD">MCD</option>
+            <option value="TCG">TCG</option>
+            <option value="ABC">ABC</option>
+            <option value="TCV">TCV</option>
+            <option value="TBL">TBL</option>
+            <option value="TSJ">TSJ</option>
+            <option value="TBA">TBA</option>
+            <option value="TPA">TPA</option>
+            <option value="TCA">TCA</option>
+        </select>
+        <button id="proceedToPassword">Prosseguir</button>
+        <p id="unitSelectionError"></p>
+    </div>
+
+    <div class="password-overlay" id="passwordOverlay" style="display: none;">
+        <div class="password-modal">
+            <h2>Senha de Acesso - Unidade <span id="selectedUnitName"></span></h2>
+            <p>Por favor, insira a senha para a unidade selecionada.</p>
+            <input type="password" id="accessPassword" placeholder="Senha da Unidade">
+            <button id="submitPassword">Acessar</button>
+            <p id="passwordError"></p>
+        </div>
+    </div>
+
+    <div class="container" id="appContainer" style="display: none;">
+        <h1>Cadastro de Nova SIC - Unidade <span id="currentUnitDisplay"></span></h1>
+        <form id="sicForm">
+            <label for="numeroSic">Número da SIC:</label>
+            <input type="text" id="numeroSic" placeholder="Ex: 12345" required>
+
+            <label for="unidade">Unidade:</label>
+            <select id="unidade" required disabled> 
+                <option value="">Unidade Selecionada</option>
+            </select>
+
+            <label for="fornecedor">Fornecedor:</label>
+            <input type="text" id="fornecedor" placeholder="Nome do Fornecedor" required>
+
+            <button type="submit">Cadastrar SIC</button>
+        </form>
+        <div id="message"></div>
+    </div>
+
+    <script>
+        // --- Senhas dos Grupos Operacionais (MUDE ESTAS SENHAS!) ---
+        const GROUP_PASSWORDS = {
+            "GRUPO_TPA_TBA": "cadpoa", // Senha para TPA e TBA
+            "GRUPO_MCD_TCG": "cadms", // Senha para MCD e TCG
+            "GRUPO_TCV_ABC": "cadcas", // Senha para TCV e ABC
+            "TPH": "senha_tph", 
+            "API": "senha_api",
+            "TBL": "senha_tbl",
+            "TSJ": "senha_tsj",
+            "TCA": "senha_tca"
+        };
+
+        // --- Mapeamento de Unidades para seus Grupos Operacionais ---
+        const UNIT_TO_GROUP_MAP = {
+            "TPA": "GRUPO_TPA_TBA",
+            "TBA": "GRUPO_TPA_TBA", 
+            "MCD": "GRUPO_MCD_TCG",
+            "TCG": "GRUPO_MCD_TCG",
+            "TCV": "GRUPO_TCV_ABC",
+            "ABC": "GRUPO_TCV_ABC",
+            "TPH": "TPH", // Unidades que não pertencem a um grupo têm seu próprio nome como "grupo"
+            "API": "API",
+            "TBL": "TBL",
+            "TSJ": "TSJ",
+            "TCA": "TCA"
+        };
+
+        const unitSelectionContainer = document.getElementById('unitSelectionContainer');
+        const selectUnitForAccess = document.getElementById('selectUnitForAccess');
+        const proceedToPasswordBtn = document.getElementById('proceedToPassword');
+        const unitSelectionError = document.getElementById('unitSelectionError');
+        
+        const passwordOverlay = document.getElementById('passwordOverlay');
+        const selectedUnitNameSpan = document.getElementById('selectedUnitName');
+        const accessPasswordInput = document.getElementById('accessPassword');
+        const submitPasswordBtn = document.getElementById('submitPassword');
+        const passwordError = document.getElementById('passwordError');
+        
+        const appContainer = document.getElementById('appContainer');
+        const currentUnitDisplay = document.getElementById('currentUnitDisplay');
+        const formUnidadeSelect = document.getElementById('unidade');
+
+        let selectedUnit = ''; // Variável para armazenar a unidade escolhida
+
+        // *** IMPORTANTE: COLOQUE A URL DA SUA IMPLANTAÇÃO DO GOOGLE APPS SCRIPT AQUI ***
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyMSn_ug8ybd_U0psLApK1TjCjo4Tsfvz4EUKe6C3bF5fYuwDePoRTrAG6sjk2JKPdO/exec';
+
+        // --- Lógica de Seleção de Unidade ---
+        proceedToPasswordBtn.addEventListener('click', function() {
+            selectedUnit = selectUnitForAccess.value;
+            if (selectedUnit === '') {
+                unitSelectionError.textContent = 'Por favor, selecione uma unidade.';
+                unitSelectionError.style.display = 'block';
+                return;
+            }
+            unitSelectionError.style.display = 'none';
+
+            // Armazenamos apenas a unidade selecionada, a senha será verificada pelo grupo
+            sessionStorage.setItem('cadastroSelectedUnit', selectedUnit); 
+
+            selectedUnitNameSpan.textContent = selectedUnit;
+            unitSelectionContainer.style.display = 'none';
+            passwordOverlay.style.display = 'flex';
+            accessPasswordInput.focus();
+        });
+
+        // --- Lógica de Senha por Grupo de Unidade ---
+        submitPasswordBtn.addEventListener('click', function() {
+            const enteredPassword = accessPasswordInput.value;
+            const groupForSelectedUnit = UNIT_TO_GROUP_MAP[selectedUnit]; // Obtém o grupo da unidade selecionada
+            
+            if (enteredPassword === GROUP_PASSWORDS[groupForSelectedUnit]) { // Compara com a senha do grupo
+                passwordOverlay.style.display = 'none';
+                appContainer.style.display = 'block';
+                sessionStorage.setItem('cadastroAccessGranted', 'true');
+                
+                currentUnitDisplay.textContent = selectedUnit;
+                formUnidadeSelect.innerHTML = `<option value="${selectedUnit}" selected>${selectedUnit}</option>`;
+                formUnidadeSelect.value = selectedUnit;
+                formUnidadeSelect.disabled = true;
+                
+            } else {
+                passwordError.textContent = 'Senha incorreta.';
+                passwordError.style.display = 'block';
+            }
+        });
+
+        // Verifica o estado de acesso no carregamento
+        document.addEventListener('DOMContentLoaded', function() {
+            selectedUnit = sessionStorage.getItem('cadastroSelectedUnit');
+            const accessGranted = sessionStorage.getItem('cadastroAccessGranted') === 'true';
+
+            if (selectedUnit && accessGranted) {
+                unitSelectionContainer.style.display = 'none';
+                passwordOverlay.style.display = 'none';
+                appContainer.style.display = 'block';
+                currentUnitDisplay.textContent = selectedUnit;
+                formUnidadeSelect.innerHTML = `<option value="${selectedUnit}" selected>${selectedUnit}</option>`;
+                formUnidadeSelect.value = selectedUnit;
+                formUnidadeSelect.disabled = true;
+            } else if (selectedUnit) {
+                unitSelectionContainer.style.display = 'none';
+                passwordOverlay.style.display = 'flex';
+                selectedUnitNameSpan.textContent = selectedUnit;
+                appContainer.style.display = 'none';
+            } else {
+                unitSelectionContainer.style.display = 'flex';
+                passwordOverlay.style.display = 'none';
+                appContainer.style.display = 'none';
+            }
+        });
+
+        const sicForm = document.getElementById('sicForm');
+        const messageDiv = document.getElementById('message');
+        const submitButton = sicForm.querySelector('button[type="submit"]');
+
+        function displayMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = type;
+            messageDiv.style.display = 'block';
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        sicForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            submitButton.disabled = true;
+            displayMessage('Enviando dados...', 'info');
+
+            const numeroSic = document.getElementById('numeroSic').value.trim();
+            const unidade = document.getElementById('unidade').value;
+            const fornecedor = document.getElementById('fornecedor').value.trim();
+
+            if (!numeroSic || !unidade || !fornecedor) {
+                displayMessage('Por favor, preencha todos os campos.', 'error');
+                submitButton.disabled = false;
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('numeroSic', numeroSic);
+            formData.append('unidade', unidade);
+            formData.append('fornecedor', fornecedor);
+
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    displayMessage(`SIC ${numeroSic} cadastrada com sucesso!`, 'success');
+                    sicForm.reset();
+                    document.getElementById('numeroSic').focus();
+                } else {
+                    displayMessage(`Erro ao cadastrar SIC: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao enviar formulário:', error);
+                displayMessage('Erro de conexão ao servidor. Tente novamente.', 'error');
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

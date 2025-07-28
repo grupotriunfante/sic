@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualização de Todas as SICs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 1400px; /* Aumentado para acomodar mais colunas */
+            margin: auto;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        .filters label {
+            font-weight: bold;
+            color: #555;
+            margin-right: 5px;
+        }
+        .filters input[type="text"],
+        .filters select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            flex-grow: 1;
+            min-width: 150px;
+        }
+        .filters button {
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .filters button:hover {
+            background-color: #0056b3;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            font-size: 14px;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            color: white;
+            font-weight: bold;
+            white-space: nowrap; /* Evita quebra de linha em badges */
+        }
+        /* Status Financeiro */
+        .status-badge.Pendente { background-color: #ffc107; color: #333; }
+        .status-badge.Aprovado { background-color: #28a745; }
+        .status-badge.Reprovado { background-color: #dc3545; }
+        .status-badge.FinanceiroManual { background-color: #00bcd4; } /* Adicionado para financeiro manual */
+
+        /* Status Logístico */
+        .status-badge.AguardandoAgendamento { background-color: #6c757d; }
+        .status-badge.EntregaAgendada { background-color: #17a2b8; }
+        .status-badge.EmTransito { background-color: #007bff; }
+        .status-badge.EntregaRecebida { background-color: #28a745; }
+        .status-badge.ProblemaNaEntrega { background-color: #dc3545; }
+        .status-badge.Devolucao { background-color: #6f42c1; }
+        /* Status CPD */
+        .status-badge.PendenteNF { background-color: #ffc107; color: #333;}
+        .status-badge.NFRecebida { background-color: #17a2b8; }
+        .status-badge.NFemAnalise { background-color: #007bff; }
+        .status-badge.NFLancada { background-color: #28a745; }
+        .status-badge.NFComProblema { background-color: #dc3545; }
+
+        .no-sics {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            border: 1px dashed #ccc;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        /* Estilos para a navegação */
+        nav {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        nav a {
+            margin: 0 10px;
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <h1>Visualização de Todas as SICs</h1>
+
+        <div class="filters">
+            <label for="filterSicNumber">Número SIC:</label>
+            <input type="text" id="filterSicNumber" placeholder="Buscar por número">
+
+            <label for="filterUnidade">Unidade:</label>
+            <select id="filterUnidade">
+                <option value="">Todas</option>
+                </select>
+
+            <label for="filterFornecedor">Fornecedor:</label>
+            <select id="filterFornecedor">
+                <option value="">Todos</option>
+                </select>
+
+            <label for="filterStatusFinanceiro">Status Financeiro:</label>
+            <select id="filterStatusFinanceiro">
+                <option value="">Todos</option>
+                <option value="Pendente">Pendente</option>
+                <option value="Aprovado">Aprovado</option>
+                <option value="Reprovado">Reprovado</option>
+                <option value="Financeiro Manual">Financeiro Manual</option> </select>
+
+            <label for="filterStatusLogistico">Status Logístico:</label>
+            <select id="filterStatusLogistico">
+                <option value="">Todos</option>
+                <option value="Aguardando Agendamento">Aguardando Agendamento</option>
+                <option value="Entrega Agendada">Entrega Agendada</option>
+                <option value="Em Trânsito">Em Trânsito</option>
+                <option value="Entrega Recebida">Entrega Recebida</option>
+                <option value="Problema na Entrega">Problema na Entrega</option>
+                <option value="Devolucao">Devolução</option>
+            </select>
+
+            <label for="filterStatusCPD">Status CPD:</label>
+            <select id="filterStatusCPD">
+                <option value="">Todos</option>
+                <option value="Pendente NF">Pendente NF</option>
+                <option value="NF Recebida">NF Recebida</option>
+                <option value="NF em Analise">NF em Análise</option>
+                <option value="NF Lancada">NF Lançada</option>
+                <option value="NF Com Problema">NF Com Problema</option>
+            </select>
+
+            <button id="applyFilters">Aplicar Filtros</button>
+            <button id="clearFilters">Limpar Filtros</button>
+        </div>
+
+        <div id="sicTableContainer">
+            <p class="loading">Carregando SICs...</p>
+        </div>
+    </div>
+
+    <script>
+        // !! SUBSTITUA PELA URL DA SUA WEB APP IMPLANTADA !!
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyMSn_ug8ybd_U0psLApK1TjCjo4Tsfvz4EUKe6C3bF5fYuwDePoRTrAG6sjk2JKPdO/exec'; // EX: https://script.google.com/macros/s/AKfycbz_1a2b3c4d5e6f7g8h9i0j/exec
+
+        let allSicsData = []; // Variável global para armazenar todas as SICs carregadas
+
+        // Função para buscar todas as SICs do Apps Script
+        async function fetchAllSics() {
+            const sicTableContainer = document.getElementById('sicTableContainer');
+            sicTableContainer.innerHTML = '<p class="loading">Carregando SICs...</p>';
+
+            try {
+                // Remove o parâmetro 'action' ou 'filterUnit' para buscar todas as SICs
+                const response = await fetch(`${WEB_APP_URL}?action=getAllSics`); // Usaremos uma action genérica para clareza
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    allSicsData = result.sics; // Armazena todas as SICs
+                    populateFilters(allSicsData); // Popula os filtros com base nos dados
+                    renderSicsTable(allSicsData); // Renderiza a tabela inicialmente com todos os dados
+                } else {
+                    sicTableContainer.innerHTML = `<p class="no-sics">Erro ao carregar SICs: ${result.message}</p>`;
+                    console.error('Erro ao carregar SICs:', result.message);
+                }
+            } catch (error) {
+                sicTableContainer.innerHTML = `<p class="no-sics">Erro de rede ao carregar SICs.</p>`;
+                console.error('Erro de rede:', error);
+            }
+        }
+
+        // Função para popular os filtros de Unidade e Fornecedor dinamicamente
+        function populateFilters(sics) {
+            const filterUnidadeSelect = document.getElementById('filterUnidade');
+            const filterFornecedorSelect = document.getElementById('filterFornecedor');
+
+            // Limpa as opções atuais, mantendo a opção "Todas"
+            filterUnidadeSelect.innerHTML = '<option value="">Todas</option>';
+            filterFornecedorSelect.innerHTML = '<option value="">Todos</option>';
+
+            const uniqueUnidades = [...new Set(sics.map(sic => sic.unidade))].sort();
+            uniqueUnidades.forEach(unidade => {
+                const option = document.createElement('option');
+                option.value = unidade;
+                option.textContent = unidade;
+                filterUnidadeSelect.appendChild(option);
+            });
+
+            const uniqueFornecedores = [...new Set(sics.map(sic => sic.fornecedor).filter(f => f))].sort(); // Filtra vazios/null
+            uniqueFornecedores.forEach(fornecedor => {
+                const option = document.createElement('option');
+                option.value = fornecedor;
+                option.textContent = fornecedor;
+                filterFornecedorSelect.appendChild(option);
+            });
+        }
+
+        // Função para renderizar a tabela de SICs
+        function renderSicsTable(sicsToDisplay) {
+            const sicTableContainer = document.getElementById('sicTableContainer');
+
+            if (sicsToDisplay.length === 0) {
+                sicTableContainer.innerHTML = '<p class="no-sics">Nenhuma SIC encontrada com os filtros aplicados.</p>';
+                return;
+            }
+
+            let tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Número SIC</th>
+                            <th>Unidade</th>
+                            <th>Fornecedor</th>
+                            <th>Data Criação</th>
+                            <th>Status Financeiro</th>
+                            <th>Status Logístico</th>
+                            <th>Status CPD</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            sicsToDisplay.forEach(sic => {
+                // Função auxiliar para formatar o status com a classe CSS correta
+                const formatStatus = (status) => {
+                    // Remove espaços e caracteres especiais para usar como classe CSS
+                    // Normaliza para lidar com acentos, etc. (igual no Apps Script)
+                    const className = status.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '').replace(/[^a-zA-Z0-9]/g, '');
+                    return `<span class="status-badge ${className}">${status}</span>`;
+                };
+
+                tableHTML += `
+                    <tr>
+                        <td>${sic.numeroDaSic}</td>
+                        <td>${sic.unidade}</td>
+                        <td>${sic.fornecedor || 'N/A'}</td>
+                        <td>${sic.dataDeCriacao}</td>
+                        <td>${formatStatus(sic.statusFinanceiro)}</td>
+                        <td>${formatStatus(sic.statusLogistico)}</td>
+                        <td>${formatStatus(sic.statusCpd)}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+            sicTableContainer.innerHTML = tableHTML;
+        }
+
+        // Função para aplicar os filtros (agora nos dados já carregados)
+        function applyFilters() {
+            const filterSicNumber = document.getElementById('filterSicNumber').value.trim().toLowerCase();
+            const filterUnidade = document.getElementById('filterUnidade').value;
+            const filterFornecedor = document.getElementById('filterFornecedor').value;
+            const filterStatusFinanceiro = document.getElementById('filterStatusFinanceiro').value;
+            const filterStatusLogistico = document.getElementById('filterStatusLogistico').value;
+            const filterStatusCPD = document.getElementById('filterStatusCPD').value;
+
+            const filteredSics = allSicsData.filter(sic => {
+                const matchesSicNumber = filterSicNumber === '' || sic.numeroDaSic.toLowerCase().includes(filterSicNumber);
+                const matchesUnidade = filterUnidade === '' || sic.unidade === filterUnidade;
+                const matchesFornecedor = filterFornecedor === '' || (sic.fornecedor && sic.fornecedor === filterFornecedor);
+                const matchesStatusFinanceiro = filterStatusFinanceiro === '' || sic.statusFinanceiro === filterStatusFinanceiro;
+                const matchesStatusLogistico = filterStatusLogistico === '' || sic.statusLogistico === filterStatusLogistico;
+                const matchesStatusCPD = filterStatusCPD === '' || sic.statusCpd === filterStatusCPD; // Corrigido para 'statusCpd'
+
+                return matchesSicNumber && matchesUnidade && matchesFornecedor && matchesStatusFinanceiro && matchesStatusLogistico && matchesStatusCPD;
+            });
+
+            renderSicsTable(filteredSics);
+        }
+
+        // Função para limpar os filtros e recarregar a tabela completa
+        function clearFilters() {
+            document.getElementById('filterSicNumber').value = '';
+            document.getElementById('filterUnidade').value = '';
+            document.getElementById('filterFornecedor').value = '';
+            document.getElementById('filterStatusFinanceiro').value = '';
+            document.getElementById('filterStatusLogistico').value = '';
+            document.getElementById('filterStatusCPD').value = '';
+            renderSicsTable(allSicsData); // Renderiza a tabela com todos os dados carregados
+        }
+
+        // Adicionar event listeners aos botões de filtro
+        document.getElementById('applyFilters').addEventListener('click', applyFilters);
+        document.getElementById('clearFilters').addEventListener('click', clearFilters);
+
+        // Carregar todas as SICs e popular os filtros ao carregar a página
+        document.addEventListener('DOMContentLoaded', fetchAllSics);
+    </script>
+</body>
+</html>

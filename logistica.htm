@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acompanhamento Logístico de SICs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 1200px;
+            margin: auto;
+            /* display: none; */ /* Controlado pelo script */
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            font-size: 14px;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            color: white;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        /* Status Financeiro */
+        .status-badge.Pendente { background-color: #ffc107; color: #333; }
+        .status-badge.Aprovado { background-color: #28a745; }
+        .status-badge.Reprovado { background-color: #dc3545; }
+        
+        /* Status Logístico */
+        .status-badge.AguardandoAgendamento { background-color: #6c757d; }
+        .status-badge.EntregaAgendada { background-color: #17a2b8; }
+        .status-badge.EmTransito { background-color: #007bff; }
+        .status-badge.EntregaRecebida { background-color: #28a745; }
+        .status-badge.ProblemaNaEntrega { background-color: #dc3545; }
+        .status-badge.Devolucao { background-color: #6f42c1; }
+        
+        .actions-logistica select {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-right: 5px;
+            min-width: 150px;
+        }
+        .actions-logistica button {
+            padding: 6px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .actions-logistica button:hover {
+            background-color: #0056b3;
+        }
+
+        .no-sics {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            border: 1px dashed #ccc;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        #message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        /* Estilos para a navegação */
+        nav {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        nav a {
+            margin: 0 10px;
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+
+        /* Container de Seleção de Unidade */
+        .unit-selection-container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            margin: auto;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: calc(100vh - 40px);
+        }
+        .unit-selection-container h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .unit-selection-container select {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .unit-selection-container button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        .unit-selection-container button:hover {
+            background-color: #0056b3;
+        }
+        #unitSelectionError {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* Overlay e Modal de Senha (para a unidade) */
+        .password-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .password-modal {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            width: 300px;
+        }
+        .password-modal h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .password-modal input[type="password"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .password-modal button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        .password-modal button:hover {
+            background-color: #0056b3;
+        }
+        #passwordError {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="unit-selection-container" id="unitSelectionContainer">
+        <h2>Selecione a Unidade - Logística</h2>
+        <select id="selectUnitForAccess">
+            <option value="">Selecione a Unidade</option>
+            <option value="TPH">TPH</option>
+            <option value="API">API</option>
+            <option value="MCD">MCD</option>
+            <option value="TCG">TCG</option>
+            <option value="ABC">ABC</option>
+            <option value="TCV">TCV</option>
+            <option value="TBL">TBL</option>
+            <option value="TSJ">TSJ</option>
+            <option value="TBA">TBA</option>
+            <option value="TPA">TPA</option>
+            <option value="TCA">TCA</option>
+        </select>
+        <button id="proceedToPassword">Prosseguir</button>
+        <p id="unitSelectionError"></p>
+    </div>
+
+    <div class="password-overlay" id="passwordOverlay" style="display: none;">
+        <div class="password-modal">
+            <h2>Senha de Acesso - Unidade <span id="selectedUnitName"></span></h2>
+            <p>Por favor, insira a senha para a unidade selecionada.</p>
+            <input type="password" id="accessPassword" placeholder="Senha da Unidade">
+            <button id="submitPassword">Acessar</button>
+            <p id="passwordError"></p>
+        </div>
+    </div>
+
+    <div class="container" id="appContainer" style="display: none;">
+
+        <h1>Acompanhamento Logístico - Unidade <span id="currentUnitDisplay"></span></h1>
+
+        <div id="sicListLogistica">
+            </div>
+
+        <div id="message"></div>
+    </div>
+
+    <script>
+        // --- Senhas Individuais por Unidade (MUDE ESTAS SENHAS!) ---
+        const UNIT_PASSWORDS = {
+            "TPH": "tphlog123",
+            "API": "apilog123",
+            "MCD": "mcdlog123", 
+            "TCG": "tcglog123", 
+            "ABC": "abclog123", 
+            "TCV": "tcvlog123", 
+            "TBL": "tbllog123",
+            "TSJ": "tsjlog123",
+            "TBA": "tbalog123",
+            "TPA": "tpalog123",
+            "TCA": "tcalog123"
+        };
+
+        // --- Mapeamento de Unidades por Grupo Operacional ---
+        const OPERATIONAL_GROUPS = {
+            "TPA": ["TPA", "TBA"],
+            "TBA": ["TPA", "TBA"], 
+            "MCD": ["MCD", "TCG"],
+            "TCG": ["MCD", "TCG"],
+            "TCV": ["TCV", "ABC"],
+            "ABC": ["TCV", "ABC"],
+            "TPH": ["TPH"],
+            "API": ["API"],
+            "TBL": ["TBL"],
+            "TSJ": ["TSJ"],
+            "TCA": ["TCA"]
+        };
+
+        const unitSelectionContainer = document.getElementById('unitSelectionContainer');
+        const selectUnitForAccess = document.getElementById('selectUnitForAccess');
+        const proceedToPasswordBtn = document.getElementById('proceedToPassword');
+        const unitSelectionError = document.getElementById('unitSelectionError');
+        
+        const passwordOverlay = document.getElementById('passwordOverlay');
+        const selectedUnitNameSpan = document.getElementById('selectedUnitName');
+        const accessPasswordInput = document.getElementById('accessPassword');
+        const submitPasswordBtn = document.getElementById('submitPassword');
+        const passwordError = document.getElementById('passwordError');
+        
+        const appContainer = document.getElementById('appContainer');
+        const currentUnitDisplay = document.getElementById('currentUnitDisplay');
+
+        let selectedUnit = ''; // Variável para armazenar a unidade escolhida (a que foi usada para o login)
+
+        // *** IMPORTANTE: COLOQUE A URL DA SUA IMPLANTAÇÃO DO GOOGLE APPS SCRIPT AQUI ***
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyMSn_ug8ybd_U0psLApK1TjCjo4Tsfvz4EUKe6C3bF5fYuwDePoRTrAG6sjk2JKPdO/exec'; // Ex: https://script.google.com/macros/s/AKfycb.../exec
+
+        // --- Lógica de Seleção de Unidade ---
+        proceedToPasswordBtn.addEventListener('click', function() {
+            selectedUnit = selectUnitForAccess.value;
+            if (selectedUnit === '') {
+                unitSelectionError.textContent = 'Por favor, selecione uma unidade.';
+                unitSelectionError.style.display = 'block';
+                return;
+            }
+            unitSelectionError.style.display = 'none';
+
+            sessionStorage.setItem('logisticaSelectedUnit', selectedUnit);
+
+            selectedUnitNameSpan.textContent = selectedUnit;
+            unitSelectionContainer.style.display = 'none';
+            passwordOverlay.style.display = 'flex';
+            accessPasswordInput.focus();
+        });
+
+        // --- Lógica de Senha por Unidade ---
+        submitPasswordBtn.addEventListener('click', function() {
+            const enteredPassword = accessPasswordInput.value;
+            if (enteredPassword === UNIT_PASSWORDS[selectedUnit]) {
+                passwordOverlay.style.display = 'none';
+                appContainer.style.display = 'block';
+                sessionStorage.setItem('logisticaAccessGranted', 'true');
+                
+                currentUnitDisplay.textContent = selectedUnit;
+                
+                // Agora chamamos a função que busca do Apps Script
+                renderSicsForLogistica(selectedUnit); 
+            } else {
+                passwordError.textContent = 'Senha incorreta.';
+                passwordError.style.display = 'block';
+            }
+        });
+
+        // Verifica o estado de acesso no carregamento
+        document.addEventListener('DOMContentLoaded', function() {
+            selectedUnit = sessionStorage.getItem('logisticaSelectedUnit');
+            const accessGranted = sessionStorage.getItem('logisticaAccessGranted') === 'true';
+
+            if (selectedUnit && accessGranted) {
+                unitSelectionContainer.style.display = 'none';
+                passwordOverlay.style.display = 'none';
+                appContainer.style.display = 'block';
+                currentUnitDisplay.textContent = selectedUnit;
+                renderSicsForLogistica(selectedUnit);
+            } else if (selectedUnit) {
+                unitSelectionContainer.style.display = 'none';
+                passwordOverlay.style.display = 'flex';
+                selectedUnitNameSpan.textContent = selectedUnit;
+                appContainer.style.display = 'none';
+            } else {
+                unitSelectionContainer.style.display = 'flex';
+                passwordOverlay.style.display = 'none';
+                appContainer.style.display = 'none';
+            }
+        });
+
+        // --- Lógica de Carregamento e Atualização de SICs com Google Apps Script ---
+
+        function displayMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = type;
+            messageDiv.style.display = 'block';
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        async function fetchSics(filterUnit = null) {
+            try {
+                let url = WEB_APP_URL;
+                if (filterUnit) {
+                    // Adiciona um parâmetro 'filterUnit' à URL para que o Apps Script possa filtrar
+                    url += `?filterUnit=${encodeURIComponent(filterUnit)}`;
+                }
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
+                }
+                const data = await response.json();
+                if (data.status === 'success') {
+                    return data.sics;
+                } else {
+                    displayMessage(`Erro ao carregar SICs: ${data.message}`, 'error');
+                    return [];
+                }
+            } catch (error) {
+                console.error('Erro ao buscar SICs:', error);
+                displayMessage('Erro de rede ou servidor ao carregar SICs.', 'error');
+                return [];
+            }
+        }
+
+        async function renderSicsForLogistica(unitMakingTheAccess) {
+            const sicListDiv = document.getElementById('sicListLogistica');
+            sicListDiv.innerHTML = '<p class="no-sics">Carregando SICs...</p>'; // Mensagem de carregamento
+
+            // Pega o grupo de unidades que pertence à unidade que fez o acesso
+            const unitsInGroup = OPERATIONAL_GROUPS[unitMakingTheAccess] || [unitMakingTheAccess];
+            
+            // Vai buscar TODAS as SICs (o filtro por grupo será feito no Apps Script se o parâmetro 'unitsToFilter' for passado)
+            // Ou, podemos ajustar o Apps Script para filtrar por UM "filterUnit" e lá ele resolve o grupo.
+            // Para simplificar, vou pedir para o Apps Script aceitar um array de unidades para filtrar.
+            // Isso requer uma pequena mudança na chamada fetchSics.
+            
+            // Enviando o grupo de unidades para o Apps Script
+            const allSics = await fetchSics(JSON.stringify(unitsInGroup));
+
+            // Filtragem adicional no cliente (para garantir, mas a principal será no servidor)
+            const sicsToDisplay = allSics.filter(sic => unitsInGroup.includes(sic.unidade));
+
+            if (sicsToDisplay.length === 0) {
+                sicListDiv.innerHTML = `<p class="no-sics">Não há SICs cadastradas ou pendentes de acompanhamento logístico para o grupo operacional de ${unitMakingTheAccess}.</p>`;
+                return;
+            }
+
+            let tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Número SIC</th>
+                            <th>Unidade</th>
+                            <th>Fornecedor</th>
+                            <th>Status Financeiro</th>
+                            <th>Status Logístico Atual</th>
+                            <th>Atualizar Status Logístico</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            sicsToDisplay.forEach(sic => {
+                const statusLogisticoClass = sic.statusLogistico.replace(/\s/g, '').replace(/[^a-zA-Z0-9]/g, '');
+                const statusFinanceiroClass = sic.statusFinanceiro.replace(/\s/g, '').replace(/[^a-zA-Z0-9]/g, '');
+
+                tableHTML += `
+                    <tr>
+                        <td>${sic.numeroDaSic}</td> <td>${sic.unidade}</td>
+                        <td>${sic.fornecedor || 'N/A'}</td>
+                        <td><span class="status-badge ${statusFinanceiroClass}">${sic.statusFinanceiro}</span></td>
+                        <td><span class="status-badge ${statusLogisticoClass}">${sic.statusLogistico}</span></td>
+                        <td class="actions-logistica">
+                            <select class="new-status-logistico" data-sic="${sic.numeroDaSic}"> <option value="Aguardando Agendamento" ${sic.statusLogistico === 'Aguardando Agendamento' ? 'selected' : ''}>Aguardando Agendamento</option>
+                                <option value="Entrega Agendada" ${sic.statusLogistico === 'Entrega Agendada' ? 'selected' : ''}>Entrega Agendada</option>
+                                <option value="Em Trânsito" ${sic.statusLogistico === 'Em Trânsito' ? 'selected' : ''}>Em Trânsito</option>
+                                <option value="Entrega Recebida" ${sic.statusLogistico === 'Entrega Recebida' ? 'selected' : ''}>Entrega Recebida</option>
+                                <option value="Problema na Entrega" ${sic.statusLogistico === 'Problema na Entrega' ? 'selected' : ''}>Problema na Entrega</option>
+                                <option value="Devolucao" ${sic.statusLogistico === 'Devolucao' ? 'selected' : ''}>Devolução</option>
+                            </select>
+                            <button class="update-logistico-btn" data-sic="${sic.numeroDaSic}">Atualizar</button> </td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+            sicListDiv.innerHTML = tableHTML;
+
+            document.querySelectorAll('.update-logistico-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const numeroSic = this.dataset.sic;
+                    const selectElement = this.previousElementSibling;
+                    const newStatus = selectElement.value;
+                    updateSicStatusLogistico(numeroSic, newStatus);
+                });
+            });
+        }
+
+        async function updateSicStatusLogistico(numeroSic, newStatus) {
+            const confirmUpdate = confirm(`Tem certeza que deseja mudar o status logístico da SIC ${numeroSic} para "${newStatus}"?`);
+            if (!confirmUpdate) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'updateStatus'); // Indica ao Apps Script que é uma atualização
+            formData.append('numeroSic', numeroSic);
+            formData.append('newStatus', newStatus);
+            formData.append('statusField', 'Status Logistico'); // Campo a ser atualizado
+            formData.append('sendEmail', 'true'); // Sinal para o Apps Script enviar e-mail
+            
+            // Opcional: para o email, você pode passar a unidade que fez a atualização
+            // formData.append('updatedByUnit', selectedUnit); 
+
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    displayMessage(`Status logístico da SIC ${numeroSic} atualizado para "${newStatus}"!`, 'success');
+                    // O Apps Script agora lida com o envio de e-mail.
+                    renderSicsForLogistica(selectedUnit); // Recarrega a tabela para refletir a mudança
+                } else {
+                    displayMessage(`Erro ao atualizar SIC: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao atualizar SIC:', error);
+                displayMessage('Status Atualizado', 'error');
+            }
+        }
+    </script>
+</body>
+</html>
