@@ -195,19 +195,19 @@
         let allSicsData = []; // Variável global para armazenar todas as SICs carregadas
         
         function formatDateToBrazilian(dateString) {
-            if (!dateString) return 'N/A';
-            try {
-                const date = new Date(dateString);
-                // Garante que o fuso horário não altere a data para o dia anterior
-                const day = String(date.getDate()).padStart(2, '0');
-                const month = String(date.getMonth() + 1).padStart(2, '0'); // Mês é base 0
-                const year = date.getFullYear();
-                return `${day}/${month}/${year}`;
-            } catch (e) {
-                console.error("Erro ao formatar data:", dateString, e);
-                return dateString; // Retorna a string original em caso de erro
-            }
-        }
+ if (!dateString) return 'N/A';
+ try {
+const date = new Date(dateString);
+// Garante que o fuso horário não altere a data para o dia anterior
+const day = String(date.getDate()).padStart(2, '0');
+const month = String(date.getMonth() + 1).padStart(2, '0'); // Mês é base 0
+const year = date.getFullYear();
+return `${day}/${month}/${year}`;
+} catch (e) {
+console.error("Erro ao formatar data:", dateString, e);
+return dateString; // Retorna a string original em caso de erro
+}
+ }
         
 
         // Função para buscar todas as SICs do Apps Script
@@ -298,13 +298,13 @@
                 tableHTML += `
                     <tr>
                        <td>${sic.numeroDaSic}</td>
-                        <td>${sic.unidade}</td>
-                        <td>${sic.fornecedor || 'N/A'}</td>
-                        <td>${formatDateToBrazilian(sic.dataDeCriacao)}</td>
-                        <td>${formatStatus(sic.statusFinanceiro)}</td>
-                        <td>${formatStatus(sic.statusLogistico)}</td>
-                        <td>${formatDateToBrazilian(sic.dataEntregaAgendada)}</td> 
-                        <td>${formatStatus(sic.statusCpd)}</td>
+ <td>${sic.unidade}</td>
+ <td>${sic.fornecedor || 'N/A'}</td>
+<td>${formatDateToBrazilian(sic.dataDeCriacao)}</td>
+<td>${formatStatus(sic.statusFinanceiro)}</td>
+ <td>${formatStatus(sic.statusLogistico)}</td>
+ <td>${formatDateToBrazilian(sic.dataEntregaAgendada)}</td> 
+ <td>${formatStatus(sic.statusCpd)}</td>
                     </tr>
                 `;
             });
@@ -359,3 +359,4 @@
     </script>
 </body>
 </html>
+
