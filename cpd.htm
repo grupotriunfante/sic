@@ -249,7 +249,7 @@
             <option value="TCV">TCV</option>
             <option value="TBL">TBL</option>
             <option value="TSJ">TSJ</option>
-            <option value="TBA">TBA</option>
+            <option value="TBE">TBE</option>
             <option value="TPA">TPA</option>
             <option value="TCA">TCA</option>
         </select>
@@ -290,15 +290,15 @@
             "TCV": "tcvcpd123",
             "TBL": "tblcpd123",
             "TSJ": "tsjcpd123",
-            "TBA": "tbacpd123",
+            "TBE": "tbacpd123",
             "TPA": "tpacpd123",
             "TCA": "tcacpd123"
         };
 
         // --- Mapeamento de Unidades por Grupo Operacional ---
         const OPERATIONAL_GROUPS = {
-            "TPA": ["TPA", "TBA"],
-            "TBA": ["TPA", "TBA"], // Inclui TBA para consistência, aponta para o mesmo grupo de TPA
+            "TPA": ["TPA", "TBE"],
+            "TBE": ["TPA", "TBE"], // Inclui TBA para consistência, aponta para o mesmo grupo de TPA
             "MCD": ["MCD", "TCG"],
             "TCG": ["MCD", "TCG"],
             "TCV": ["TCV", "ABC"],
@@ -597,3 +597,4 @@
     </script>
 </body>
 </html>
+
