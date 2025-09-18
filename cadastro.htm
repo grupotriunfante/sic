@@ -191,7 +191,7 @@
             <option value="TCV">TCV</option>
             <option value="TBL">TBL</option>
             <option value="TSJ">TSJ</option>
-            <option value="TBA">TBA</option>
+            <option value="TBE">TBE</option>
             <option value="TPA">TPA</option>
             <option value="TCA">TCA</option>
         </select>
@@ -231,7 +231,7 @@
     <script>
         // --- Senhas dos Grupos Operacionais (MUDE ESTAS SENHAS!) ---
         const GROUP_PASSWORDS = {
-            "GRUPO_TPA_TBA": "cadpoa", // Senha para TPA e TBA
+            "GRUPO_TPA_TBE": "cadpoa", // Senha para TPA e TBE
             "GRUPO_MCD_TCG": "cadms", // Senha para MCD e TCG
             "GRUPO_TCV_ABC": "cadcas", // Senha para TCV e ABC
             "TPH": "senha_tph", 
@@ -243,8 +243,8 @@
 
         // --- Mapeamento de Unidades para seus Grupos Operacionais ---
         const UNIT_TO_GROUP_MAP = {
-            "TPA": "GRUPO_TPA_TBA",
-            "TBA": "GRUPO_TPA_TBA", 
+            "TPA": "GRUPO_TPA_TBE",
+            "TBE": "GRUPO_TPA_TBE", 
             "MCD": "GRUPO_MCD_TCG",
             "TCG": "GRUPO_MCD_TCG",
             "TCV": "GRUPO_TCV_ABC",
@@ -403,4 +403,5 @@
         });
     </script>
 </body>
+
 </html>
