@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-B">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aprovação Financeira de SICs</title>
     <style>
@@ -170,6 +170,26 @@
             margin-top: 10px;
             display: none;
         }
+        
+        /* */
+        .filter-container {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border: 1px solid #eee;
+        }
+        .filter-container label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .filter-container select {
+            padding: 8px;
+            font-size: 14px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
     </style>
 </head>
 <body>
@@ -185,6 +205,16 @@
 
     <div class="container" id="appContainer">
         <h1>Aprovação Financeira de SICs</h1>
+
+        <div class="filter-container">
+            <label for="statusFilter">Filtrar por Status:</label>
+            <select id="statusFilter">
+                <option value="Pendente" selected>Pendentes (p/ Aprovação)</option>
+                <option value="Aprovado">Aprovados</option>
+                <option value="Reprovado">Reprovados</option>
+                <option value="Todos">Todos</option>
+            </select>
+        </div>
 
         <div id="sicListAprovacao">
             </div>
@@ -205,12 +235,15 @@
         // *** IMPORTANTE: COLOQUE A URL DA SUA IMPLANTAÇÃO DO GOOGLE APPS SCRIPT AQUI ***
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyMSn_ug8ybd_U0psLApK1TjCjo4Tsfvz4EUKe6C3bF5fYuwDePoRTrAG6sjk2JKPdO/exec'; // Ex: https://script.google.com/macros/s/AKfycb.../exec
 
+        // MUDANÇA: Variável para armazenar todos os dados buscados
+        let allSicsData = [];
+
         submitPasswordBtn.addEventListener('click', function() {
             if (accessPasswordInput.value === FINANCE_PASSWORD) {
                 passwordOverlay.style.display = 'none'; // Esconde o overlay
                 appContainer.style.display = 'block';   // Mostra o conteúdo
                 sessionStorage.setItem('financeAccessGranted', 'true'); // Marca acesso na sessão
-                renderSicsForAprovacao(); // Renderiza a tabela após o acesso
+                initializeSicsView(); // MUDANÇA: Chama a nova função de inicialização
             } else {
                 passwordError.textContent = 'Senha incorreta.';
                 passwordError.style.display = 'block';
@@ -222,7 +255,7 @@
             if (sessionStorage.getItem('financeAccessGranted') === 'true') {
                 passwordOverlay.style.display = 'none';
                 appContainer.style.display = 'block';
-                renderSicsForAprovacao(); // Chama o render imediatamente se já logado
+                initializeSicsView(); // MUDANÇA: Chama a nova função de inicialização
             } else {
                 passwordOverlay.style.display = 'flex'; // Mantém o overlay visível
                 appContainer.style.display = 'none';    // Mantém o conteúdo escondido
@@ -261,17 +294,48 @@
             }
         }
 
-        async function renderSicsForAprovacao() {
+        // MUDANÇA: Nova função para buscar dados UMA VEZ e configurar o filtro
+        async function initializeSicsView() {
             const sicListDiv = document.getElementById('sicListAprovacao');
             sicListDiv.innerHTML = '<p class="no-sics">Carregando SICs...</p>'; // Mensagem de carregamento
 
-            const sics = await fetchSics(); // Busca as SICs do Apps Script
+            // Busca os dados do servidor e armazena na variável global
+            allSicsData = await fetchSics(); 
 
-            if (sics.length === 0) {
-                sicListDiv.innerHTML = '<p class="no-sics">Não há SICs cadastradas ou pendentes de aprovação financeira.</p>';
+            // Adiciona o "ouvinte" ao filtro. Toda vez que mudar, chama renderSicsTable
+            document.getElementById('statusFilter').addEventListener('change', renderSicsTable);
+
+            // Renderiza a tabela pela primeira vez (com o filtro padrão "Pendente")
+            renderSicsTable();
+        }
+
+        // MUDANÇA: Esta função foi renomeada (era renderSicsForAprovacao) e modificada
+        // Agora ela NÃO busca dados, apenas "desenha" a tabela com base no filtro
+        function renderSicsTable() {
+            const sicListDiv = document.getElementById('sicListAprovacao');
+            
+            // 1. Pega o valor atual do filtro
+            const filterValue = document.getElementById('statusFilter').value;
+
+            // 2. Filtra os dados da variável global 'allSicsData'
+            const filteredSics = allSicsData.filter(sic => {
+                if (filterValue === 'Todos') {
+                    return true; // Mostra todos
+                }
+                return sic.statusFinanceiro === filterValue; // Mostra apenas os que batem com o filtro
+            });
+
+            // 3. Verifica se há SICs *após* aplicar o filtro
+            if (filteredSics.length === 0) {
+                if (filterValue === 'Todos') {
+                    sicListDiv.innerHTML = '<p class="no-sics">Não há SICs cadastradas.</p>';
+                } else {
+                    sicListDiv.innerHTML = `<p class="no-sics">Não há SICs com o status "${filterValue}".</p>`;
+                }
                 return;
             }
 
+            // 4. Constrói o HTML da tabela (igual a antes, mas usando 'filteredSics')
             let tableHTML = `
                 <table>
                     <thead>
@@ -286,7 +350,7 @@
                     <tbody>
             `;
 
-            sics.forEach(sic => {
+            filteredSics.forEach(sic => {
                 const statusClass = sic.statusFinanceiro.replace(/\s/g, ''); // Remove espaços para classe CSS
                 tableHTML += `
                     <tr>
@@ -308,7 +372,7 @@
             `;
             sicListDiv.innerHTML = tableHTML;
 
-            // Adiciona event listeners aos botões
+            // 5. Adiciona event listeners aos botões (MUITO IMPORTANTE, pois o HTML foi reescrito)
             document.querySelectorAll('.approve-btn').forEach(button => {
                 button.addEventListener('click', function() {
                     updateSicStatus(this.dataset.sic, 'Aprovado', 'Status Financeiro');
@@ -349,9 +413,18 @@
 
                 if (result.status === 'success') {
                     displayMessage(`SIC ${numeroSic} foi ${newStatus.toLowerCase()}!`, 'success');
-                    // Simulação de e-mail pode ser feita aqui ou diretamente no Apps Script
-                    // Se feita no Apps Script, ele terá acesso total ao MailApp
-                    renderSicsForAprovacao(); // Recarrega a tabela para refletir a mudança
+
+                    // MUDANÇA: Atualizar os dados locais e redesenhar a tabela
+                    // 1. Encontra a SIC nos dados locais e atualiza seu status
+                    const index = allSicsData.findIndex(sic => sic.numeroDaSic == numeroSic); // Usar == por segurança (string vs num)
+                    if (index !== -1) {
+                        allSicsData[index].statusFinanceiro = newStatus;
+                    }
+
+                    // 2. Chama a função de renderizar, que vai usar os dados atualizados
+                    //    e manterá o filtro que o usuário selecionou.
+                    renderSicsTable(); 
+                    
                 } else {
                     displayMessage(`Erro ao atualizar SIC: ${result.message}`, 'error');
                 }
